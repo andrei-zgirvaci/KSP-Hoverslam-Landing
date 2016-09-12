@@ -1,5 +1,5 @@
 #Kerbal Space Program - Scripts (KSP-Scripts)
-This is a repo where all my KSP scripts are, for scripting I am using [KRPC mod](https://krpc.github.io/krpc/getting-started.html).
+This is a repo where all my KSP scripts are stored, for scripting I am using [KRPC mod](https://krpc.github.io/krpc/getting-started.html). Also I need help on solving "Suicide Burn" calculation for my rocket, so any of you that are good at maths and physics are welcome! :)
 
 WRITTEN BY: Andrei Zgirvaci
 
