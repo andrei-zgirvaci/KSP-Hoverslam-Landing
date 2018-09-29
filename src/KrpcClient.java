@@ -25,6 +25,7 @@ public class KrpcClient {
 
     public static void closeConnectionToServer() throws IOException {
         connection.close();
+        System.out.println("Connection closed");
     }
 
     public static void drawUI() throws RPCException {
@@ -63,7 +64,7 @@ public class KrpcClient {
         Camera camera = spaceCenter.getCamera();
         camera.setHeading(90);
         camera.setPitch(0);
-        camera.setDistance(60);
+        camera.setDistance(70);
     }
 
     public static void loadLaunchSave(String saveName) throws RPCException {

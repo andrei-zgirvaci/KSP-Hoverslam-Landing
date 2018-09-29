@@ -44,20 +44,20 @@ public class helpers {
         double timeToBurn = Math.abs(vesselVerticalVelocity)/maximumAcceleration;
         double suicideBurnDistance = (Math.abs(vesselVerticalVelocity)*timeToBurn)+(0.5*(maximumAcceleration*Math.pow(timeToBurn, 2)));
 
-        System.out.printf("[DEBUG] Altitude: %f\n", vesselAltitude);
-        System.out.printf("[DEBUG] Vertical velocity: %f\n", vesselVerticalVelocity);
-        System.out.printf("[DEBUG] Available thrust: %f\n", availableThrust);
-        System.out.printf("[DEBUG] Mass: %f\n", mass);
-        System.out.printf("[DEBUG] Gravity: %f\n", gravity);
+//        System.out.printf("[DEBUG] Altitude: %f\n", vesselAltitude);
+//        System.out.printf("[DEBUG] Vertical velocity: %f\n", vesselVerticalVelocity);
+//        System.out.printf("[DEBUG] Available thrust: %f\n", availableThrust);
+//        System.out.printf("[DEBUG] Mass: %f\n", mass);
+//        System.out.printf("[DEBUG] Gravity: %f\n", gravity);
 //        System.out.printf("[DEBUG] Drag0: %f\n", drag0);
 //        System.out.printf("[DEBUG] Drag1: %f\n", drag1);
 //        System.out.printf("[DEBUG] Drag2: %f\n", drag2);
 //        System.out.printf("[DEBUG] ISP: %f\n", ISP);
-        System.out.printf("[DEBUG] TWR: %f\n", TWR);
-        System.out.printf("[DEBUG] Maximum acceleration: %f\n", maximumAcceleration);
-        System.out.printf("[DEBUG] Time to burn: %f\n", timeToBurn);
-        System.out.printf("[DEBUG] Suicide burn distance: %f\n", suicideBurnDistance);
-        System.out.println("---------------------------");
+//        System.out.printf("[DEBUG] TWR: %f\n", TWR);
+//        System.out.printf("[DEBUG] Maximum acceleration: %f\n", maximumAcceleration);
+//        System.out.printf("[DEBUG] Time to burn: %f\n", timeToBurn);
+//        System.out.printf("[DEBUG] Suicide burn distance: %f\n", suicideBurnDistance);
+//        System.out.println("---------------------------");
 
         return suicideBurnDistance * 1.1;
     }

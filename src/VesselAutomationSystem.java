@@ -12,12 +12,12 @@ import java.util.concurrent.TimeUnit;
 public class VesselAutomationSystem {
 
     private Connection connection;
+    private KRPC krpc;
     private Flight flight;
     private Vessel vessel;
     private double vesselHeight;
     private Stream<Double> vesselAltitude;
     private Stream<Double> vesselVerticalVelocity;
-    private KRPC krpc;
 
     VesselAutomationSystem(Vessel vessel, double vesselHeight) throws RPCException, StreamException {
         this.vessel = vessel;
@@ -33,18 +33,14 @@ public class VesselAutomationSystem {
                 (Double value) -> {
                     try {
                         KrpcClient.writeText(KrpcClient.vesselVerticalVelocity, value);
-                    } catch (RPCException e) {
-                        e.printStackTrace();
-                    }
+                    } catch (RPCException e) { }
                 });
         vesselVerticalVelocity.start();
         vesselAltitude.addCallback(
                 (Double value) -> {
                     try {
                         KrpcClient.writeText(KrpcClient.vesselAltitude, value-(vesselHeight/2));
-                    } catch (RPCException e) {
-                        e.printStackTrace();
-                    }
+                    } catch (RPCException e) { }
                 });
         vesselAltitude.start();
     }
@@ -65,9 +61,9 @@ public class VesselAutomationSystem {
                     System.out.println("---------------------------");
                     break;
                 case 4 :
-                    System.out.println("[!] Setting throttle -> 0");
+                    System.out.println("[!] Setting throttle -> 0%");
                     vessel.getControl().setThrottle(0.0f);
-                    System.out.println("[+] Throttle set -> 0");
+                    System.out.println("[+] Throttle set -> 0%");
                     System.out.println("---------------------------");
                     break;
                 case 3 :
@@ -88,7 +84,7 @@ public class VesselAutomationSystem {
                     System.out.println("---------------------------");
                     break;
                 case 1:
-                    System.out.println("[!] Setting throttle to maximum");
+                    System.out.println("[!] Increasing throttle -> 100%");
                     if (!setThrottle(vessel, 0, 1, 4)) {
                        return false;
                     }
@@ -116,16 +112,14 @@ public class VesselAutomationSystem {
     private void abortLaunch() throws InterruptedException, RPCException {
         System.out.println("---------------------------");
         System.out.println("[!] Aborting launch...");
-        if (vessel.getControl().getThrottle() > 0) {
-            System.out.println("[!] Killing main engine");
-            TimeUnit.SECONDS.sleep(1);
-            vessel.getControl().setThrottle(0.0f);
-            System.out.println("[+] Throttle set -> 0");
-        }
+        System.out.println("[!] Killing main engine");
+        TimeUnit.SECONDS.sleep(1);
+        vessel.getControl().setThrottle(0.0f);
+        System.out.println("[+] Throttle set -> 0");
         System.out.println("---------------------------");
     }
 
-    public boolean reachAltitude(double altitudeNeededToReach) throws RPCException, StreamException, InterruptedException {
+    public boolean reachAltitudeByPitchAndHeading(double altitudeNeededToReach, float pitch, float heading) throws RPCException, StreamException, InterruptedException {
         krpc.schema.KRPC.ProcedureCall surfaceAltitude = connection.getCall(flight, "getSurfaceAltitude");
         krpc.client.services.KRPC.Expression reachAltitudeExpression;
         Event reachAltitudeEvent;
@@ -137,16 +131,16 @@ public class VesselAutomationSystem {
         reachAltitudeEvent = krpc.addEvent(reachAltitudeExpression);
         synchronized (reachAltitudeEvent.getCondition()) {
             reachAltitudeEvent.waitFor();
-            System.out.println("[!] Changing pitch and heading -> 45, 360 grades");
+            System.out.printf("[!] Changing pitch and heading -> %.0f, %.0f\n", pitch, heading);
             TimeUnit.SECONDS.sleep(1);
             vessel.getControl().setRCS(false);
             vessel.getControl().setSAS(false);
             System.out.println("[+] RCS deactivated");
             System.out.println("[+] SAS deactivated");
-            vessel.getAutoPilot().targetPitchAndHeading(80, 360);
+            vessel.getAutoPilot().targetPitchAndHeading(pitch, heading);
             vessel.getAutoPilot().engage();
 
-            System.out.println("[+] Pitch and heading set -> 45, 360 grades");
+            System.out.printf("[+] Pitch and heading set -> %.0f, %.0f\n", pitch, heading);
             System.out.println("---------------------------");
         }
 
@@ -163,11 +157,10 @@ public class VesselAutomationSystem {
             vessel.getAutoPilot().disengage();
             vessel.getControl().setRCS(true);
             vessel.getControl().setSAS(true);
-            vessel.getControl().setSASMode(SASMode.RADIAL);
-            vessel.getControl().setSAS(true);
+            TimeUnit.SECONDS.sleep(1);
             vessel.getControl().setSASMode(SASMode.RADIAL);
             System.out.println("[+] RCS activated");
-            System.out.println("[+] SAS activated");
+            System.out.println("[+] SAS (Radial Mode) activated");
             System.out.println("---------------------------");
         }
 
@@ -178,10 +171,10 @@ public class VesselAutomationSystem {
         reachAltitudeEvent = krpc.addEvent(reachAltitudeExpression);
         synchronized (reachAltitudeEvent.getCondition()) {
             reachAltitudeEvent.waitFor();
-            System.out.printf("[+] Vessel reached altitude: %f\n", altitudeNeededToReach);
+            System.out.printf("[+] Vessel reached altitude: %.0f\n", altitudeNeededToReach);
             System.out.println("[!] Killing main engine");
             vessel.getControl().setThrottle(0);
-            System.out.println("[+] Throttle set -> 0");
+            System.out.println("[+] Throttle set -> 0%");
             System.out.println("---------------------------");
         }
         return true;
@@ -190,22 +183,26 @@ public class VesselAutomationSystem {
     public boolean land() throws RPCException, StreamException {
 
         boolean initSuicideBurnStageStarted = false;
+        boolean landingGearDeployed = false;
 
-        System.out.println("---------------------------");
         while (true) {
             double suicideBurnDistance = helpers.calculateSuicideBurnDistance(vessel, flight, vesselVerticalVelocity.get(), vesselAltitude.get());
 
-            if (vesselAltitude.get() - (vesselHeight / 2) <= 300) {
+            if (!landingGearDeployed && vesselAltitude.get() - (vesselHeight / 2) <= 300 && vesselVerticalVelocity.get() < 0) {
+                System.out.println("[!] Deploying landing gear");
                 vessel.getControl().setGear(true);
+                landingGearDeployed = true;
+                System.out.println("[+] Landing gear deployed");
+                System.out.println("---------------------------");
             }
 
             if (vesselAltitude.get() - (vesselHeight / 2) <= suicideBurnDistance && vesselVerticalVelocity.get() < 0) {
                 if (!initSuicideBurnStageStarted) {
                     System.out.println("[!] Performing Suicide Burn");
-                    System.out.println("[!] Setting throttle to maximum");
+                    System.out.println("[!] Setting throttle -> 100%");
                     vessel.getControl().setThrottle(1);
                     initSuicideBurnStageStarted = true;
-                    System.out.println("[+] Throttle set -> 1");
+                    System.out.println("[+] Throttle set -> 100%");
                     System.out.println("---------------------------");
                 }
                 else {
@@ -216,11 +213,11 @@ public class VesselAutomationSystem {
                 vessel.getControl().setThrottle(0);
             }
 
-            if (vessel.getSituation() == VesselSituation.LANDED && vesselVerticalVelocity.get() > 1 && vesselVerticalVelocity.get() < 1) {
-                System.out.println("[+] Landed successfully");
+            if (vessel.getSituation() == VesselSituation.LANDED && Math.abs(vesselVerticalVelocity.get()) < 2) {
                 System.out.println("[!] Killing main engine");
                 vessel.getControl().setThrottle(0);
-                System.out.println("[+] Throttle set -> 0");
+                System.out.println("[+] Throttle set -> 0%");
+                System.out.println("[+] Landed successfully");
                 System.out.println("---------------------------");
                 return true;
             }
@@ -230,43 +227,40 @@ public class VesselAutomationSystem {
     private boolean setThrottle(Vessel vessel, float initThrottle, float endThrottle, float timeInSeconds) throws InterruptedException, RPCException {
         final CountDownLatch latch = new CountDownLatch(1);
         final int period = 50;
-        new Timer().scheduleAtFixedRate(new TimerTask() {
+        final float throttleRate = timeInSeconds * 1000 / period;
+
+        TimerTask increaseThrottleTask = new TimerTask() {
             float throttle = initThrottle;
-            float throttleRate = timeInSeconds * 1000 / period;
-            @Override
+
             public void run() {
                 try {
-                    if (initThrottle < endThrottle) {
-                        if (throttle < endThrottle) {
-                            throttle += Math.abs(endThrottle - initThrottle) / throttleRate;
-                            vessel.getControl().setThrottle(throttle);
-                        }
-                        else {
-                            latch.countDown();
-                        }
+                    if (throttle < endThrottle) {
+                        throttle += Math.abs(endThrottle - initThrottle) / throttleRate;
+                        vessel.getControl().setThrottle(throttle);
                     }
                     else {
-                        if (throttle > endThrottle) {
-                            throttle -= Math.abs(endThrottle - initThrottle) / throttleRate;
-                            vessel.getControl().setThrottle(throttle);
-                        }
-                        else {
-                            latch.countDown();
-                        }
+                        latch.countDown();
+                        cancel();
                     }
                 }
                 catch (RPCException e) {
                     e.printStackTrace();
                 }
             }
-        }, 1000, period);
+        };
+
+        Timer timer = new Timer("Timer");
+
+        timer.scheduleAtFixedRate(increaseThrottleTask, 0, period);
+
         latch.await();
-        if (vessel.getControl().getThrottle() == endThrottle) {
-            System.out.printf("[+] Throttle set -> %f\n", endThrottle);
+
+        if (Math.abs(vessel.getControl().getThrottle() - endThrottle) < 1) {
+            System.out.printf("[+] Throttle set -> %.0f%%\n", endThrottle*100);
             return true;
         }
         else {
-            System.out.printf("[-] Couldn't set throttle -> %f\n", endThrottle);
+            System.out.printf("[-] Couldn't set throttle -> %.0f%%\n", endThrottle*100);
             abortLaunch();
             return false;
         }
