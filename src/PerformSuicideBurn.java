@@ -11,7 +11,7 @@ public class PerformSuicideBurn {
         VesselAutomationSystem vesselAutomationSystem = new VesselAutomationSystem(KrpcClient.getActiveVessel(), 45 );
         KrpcClient.setCameraToVessel();
         if (vesselAutomationSystem.launch()) {
-            if (vesselAutomationSystem.reachAltitudeByPitchAndHeading(500, 85, 360)) {
+            if (vesselAutomationSystem.reachAltitudeByPitchAndHeading(1000, 85, 360)) {
                 vesselAutomationSystem.land();
             }
         }
