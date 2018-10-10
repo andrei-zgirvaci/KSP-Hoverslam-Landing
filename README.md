@@ -11,9 +11,12 @@ CONTRIBUTE: Contributions are always welcome!
 
 *If you can, please take a minute to star this repo and follow me, It will be much appreciated!!!*
 
+## My attempt to perform a hoverslam landing (Video)
+[![YouTube Video](https://i.imgur.com/aqRhUAo.png)](https://youtu.be/PxGJmWlMJNU)
+
 ## Requirements
 
-Read: [KRPC - Java Instalation Guide](https://krpc.github.io/krpc/java/client.html)
+Read: [KRPC - Java Installation Guide](https://krpc.github.io/krpc/java/client.html)
 
 ## Installation
 
